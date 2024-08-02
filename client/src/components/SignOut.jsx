@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignOut() {
   const [formData, setFormdata] = useState({});
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const handleChange = (e) =>{
     setFormdata({...formData,[e.target.id]: e.target.value });
   }
@@ -26,6 +28,7 @@ export default function SignOut() {
         setError(true);
         return;
       }
+      navigate('/sign-in')
     } catch (error) {
       setLoading(false);
       setError(true);
@@ -66,9 +69,9 @@ export default function SignOut() {
       </form>
       <div className="flex gap-2 mt-5">
         <p className="text-gray-600">Have an account?</p>
-        <a href="#" className="text-blue-500 hover:underline">
-          Sign In
-        </a>
+        <Link to={'/signup'}>
+         <span className="text-blue-500">Sign In</span>
+        </Link>
       </div>
       <p className="text-red-600 mt-4">{error && "something went wrong!"}</p>
     </div>
