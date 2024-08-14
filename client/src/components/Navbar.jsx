@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-
+import { useSelector } from "react-redux";
 export default function Navbar() {
+  const {currentUser} = useSelector((state) => state.user);
   return (
     <div className="relative bg-gradient-to-r from-blue-100 to-purple-100">
       <div className="flex justify-between max-w-7xl items-center mx-auto p-4">
@@ -14,9 +15,16 @@ export default function Navbar() {
           <Link to={"/about"}>
             <li className="text-gray-700 hover:text-blue-500">About</li>
           </Link>
-          <Link to={"/sign-in"}>
-            <li className="text-gray-700 hover:text-blue-500">Sign-in</li>
+          <Link to={"/profile"}>{
+            currentUser ? (
+              <img src={currentUser.profilePicture} alt="profile" className="h-7 w-7 rounded-full object-cover mt-1 "/>
+            ):(
+              <li className="text-gray-700 hover:text-blue-500">Sign-in</li>
+            )
+          }
+            
           </Link>
+          
         </ul>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent"></div>
