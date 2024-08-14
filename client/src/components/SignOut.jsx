@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
+import OAuth from "./OAuth";
 
 export default function SignOut() {
   const [formData, setFormdata] = useState({});
@@ -66,10 +67,11 @@ export default function SignOut() {
            className='bg-gradient-to-r from-gray-500 to-gray-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80'>
          {loading ? "loading" : "Sign Up"}
         </button>
+        <OAuth/>
       </form>
       <div className="flex gap-2 mt-5">
         <p className="text-gray-600">Have an account?</p>
-        <Link to={'/signup'}>
+        <Link to={'/sign-in'}>
          <span className="text-blue-500">Sign In</span>
         </Link>
       </div>
