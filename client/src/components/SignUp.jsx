@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import OAuth from "./OAuth";
 
-export default function SignOut() {
+export default function SignUp() {
   const [formData, setFormdata] = useState({});
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
