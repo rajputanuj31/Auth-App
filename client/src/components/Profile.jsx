@@ -1,78 +1,133 @@
-import {useRef, useState} from 'react';
-import { useSelector } from 'react-redux';
-import { useDispatch } from 'react-redux';
-import { updateFailure,updateStart,updateSuccess ,deleteFailure,deleteStart,deleteSuccess, signOut} from '../store/user/userSlice';
+import { useRef, useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  updateFailure,
+  updateStart,
+  updateSuccess,
+  deleteFailure,
+  deleteStart,
+  deleteSuccess,
+  signOut,
+} from '../store/user/userSlice';
+import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
+import app from '../firebase';
 
 const Profile = () => {
-  const {currentUser, loading, error} = useSelector((state) => state.user);
+  const { currentUser, loading, error } = useSelector((state) => state.user);
   const fileRef = useRef(null);
-  const [formData,setFormData] = useState({});
+  const [formData, setFormData] = useState({});
   const dispatch = useDispatch();
-  const [updated,setUpdated] = useState(false);
-  const handleChange = (e) =>{
-     setFormData({...formData, [e.target.id]:e.target.value});
-  }
-  const handleSubmit = async (e) =>{
-     e.preventDefault();
-     try {
-       dispatch(updateStart());
-      const res = await fetch(`/backend/user/update/${currentUser._id}`,{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
+  const [updated, setUpdated] = useState(false);
+  const [image, setImage] = useState(undefined);
+  const [imagePercent, setImagePercent] = useState(0);
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    if (image) {
+      handleFileUpload(image);
+    }
+  }, [image]);
+
+  const handleFileUpload = async (image) => {
+    const storage = getStorage(app);
+    const fileName = new Date().getTime() + image.name;
+    const storageRef = ref(storage, fileName);
+    const uploadTask = uploadBytesResumable(storageRef, image);
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress =
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setImagePercent(Math.round(progress));
+      },
+      (error) => {
+        setImageError(true);
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) =>
+          setFormData({ ...formData, profilePicture: downloadURL })
+        );
+      }
+    );
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      dispatch(updateStart());
+      const res = await fetch(`/backend/user/update/${currentUser._id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       });
       const data = await res.json();
-      if(data.success == false){
+      if (data.success === false) {
         dispatch(updateFailure(data));
-        return
+        return;
       }
       dispatch(updateSuccess(data));
       setUpdated(true);
-      console.log(data);
-      
-     } catch (error) {
-      dispatch(updateFailure(error))
-     }
-  }
-  const handleDelete = async () =>{
-     try {
+    } catch (error) {
+      dispatch(updateFailure(error));
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
       dispatch(deleteStart());
-      const res = await fetch(`/backend/user/delete/${currentUser._id}`,{
-        method:'DELETE',
+      const res = await fetch(`/backend/user/delete/${currentUser._id}`, {
+        method: 'DELETE',
       });
       const data = await res.json();
-      if(data.success == false){
+      if (data.success === false) {
         dispatch(deleteFailure(data));
-        return
+        return;
       }
       dispatch(deleteSuccess(data));
-     } catch (error) {
+    } catch (error) {
       dispatch(deleteFailure(error));
-     }
-  }
+    }
+  };
 
-  const handleSignOut = async () =>{
-     try {
+  const handleSignOut = async () => {
+    try {
       await fetch('/backend/auth/signout');
       dispatch(signOut());
-     } catch (error) {
+    } catch (error) {
       console.log(error);
-      
-     }
-  }
+    }
+  };
+
   return (
     <div className='p-3 max-w-lg mx-auto'>
       <h1 className='text-3xl font-semibold text-center my-7'>Profile</h1>
       <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
-        <input type='file' ref={fileRef} hidden accept='image/*'/>
+        <input type='file' ref={fileRef} hidden accept='image/*' onChange={(e) => setImage(e.target.files[0])} />
         <img
-          src={currentUser.profilePicture} 
+          src={formData.profilePicture || currentUser.profilePicture}
           alt='profile'
           className='h-24 w-24 self-center cursor-pointer rounded-full object-cover mt-2'
-          onClick={()=>fileRef.current.click()}
+          onClick={() => fileRef.current.click()}
         />
+        <p className='text-sm self-center'>
+          {imageError ? (
+            <span className='text-red-700'>
+              Error uploading image (file size must be less than 2 MB)
+            </span>
+          ) : imagePercent > 0 && imagePercent < 100 ? (
+            <span className='text-slate-700'>{`Uploading: ${imagePercent} %`}</span>
+          ) : imagePercent === 100 ? (
+            <span className='text-green-700'>Image uploaded successfully</span>
+          ) : (
+            ''
+          )}
+        </p>
         <input
           type='text'
           id='username'
@@ -97,7 +152,7 @@ const Profile = () => {
           onChange={handleChange}
         />
         <button className='bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95'>
-          {loading ? 'loading': 'Update'}
+          {loading ? 'Loading...' : 'Update'}
         </button>
       </form>
       <div className='flex justify-between mt-5'>
@@ -108,9 +163,8 @@ const Profile = () => {
           Sign out
         </span>
       </div>
-     <p className='text-green-500 mt-5'>{updated && "User updated successfully"}</p>
-     <p className='text-red-500 mt-5'>{error && "Something went wrong!"}</p>
-
+      <p className='text-green-500 mt-5'>{updated && 'User updated successfully'}</p>
+      <p className='text-red-500 mt-5'>{error && 'Something went wrong!'}</p>
     </div>
   );
 };
